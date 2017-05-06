@@ -14,27 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-"use strict"
+"use strict";
 
-const preloadChunks = require("./src/preloadChunks")
+const preloadChunks = require("./src/preloadChunks");
 
-const objectAssign = require("object-assign")
+const objectAssign = require("object-assign");
 const defaultOptions = {
   rel: "preload",
   as: "script",
   include: "asyncChunks",
   fileBlacklist: [/\.map/]
-}
+};
 
 class PreloadPlugin {
   constructor(options) {
-    this.options = objectAssign({}, defaultOptions, options)
+    this.options = objectAssign({}, defaultOptions, options);
   }
 
   apply(compiler) {
-    const options = this.options
+    const options = this.options;
     // let filesToInclude = ""
-    let extractedChunks = []
+    let extractedChunks = [];
     compiler.plugin("compilation", compilation => {
       compilation.plugin(
         "html-webpack-plugin-before-html-processing",
@@ -47,45 +47,45 @@ class PreloadPlugin {
             options.include === undefined ||
             options.include === "asyncChunks"
           ) {
-            let asyncChunksSource = null
+            let asyncChunksSource = null;
             try {
               asyncChunksSource = compilation.chunks
                 .filter(chunk => !chunk.isInitial())
-                .map(chunk => chunk.files)
+                .map(chunk => chunk.files);
             } catch (e) {
-              asyncChunksSource = compilation.chunks.map(chunk => chunk.files)
+              asyncChunksSource = compilation.chunks.map(chunk => chunk.files);
             }
-            extractedChunks = [].concat.apply([], asyncChunksSource)
+            extractedChunks = [].concat.apply([], asyncChunksSource);
           } else if (options.include === "all") {
             // Async chunks, vendor chunks, normal chunks.
             extractedChunks = compilation.chunks.reduce(
               (chunks, chunk) => chunks.concat(chunk.files),
               []
-            )
+            );
           } else if (Array.isArray(options.include)) {
             // Keep only user specified chunks
             extractedChunks = compilation.chunks
               .filter(chunk => {
-                const chunkName = chunk.name
+                const chunkName = chunk.name;
                 // Works only for named chunks
                 if (!chunkName) {
-                  return false
+                  return false;
                 }
-                return options.include.indexOf(chunkName) > -1
+                return options.include.indexOf(chunkName) > -1;
               })
               .map(chunk => chunk.files)
-              .reduce((prev, curr) => prev.concat(curr), [])
+              .reduce((prev, curr) => prev.concat(curr), []);
           }
 
-          const publicPath = compilation.outputOptions.publicPath || ""
+          const publicPath = compilation.outputOptions.publicPath || "";
 
           const entries = extractedChunks
             .filter(entry => {
               return this.options.fileBlacklist.every(
                 regex => regex.test(entry) === false
-              )
+              );
             })
-            .map(entry => `${publicPath}${entry}`)
+            .map(entry => `${publicPath}${entry}`);
           /*.forEach(entry => {
               if (options.rel === "preload") {
                 filesToInclude += `<link rel="${options.rel}" href="${entry}" as="${options.as}">\n`
@@ -97,30 +97,26 @@ class PreloadPlugin {
               }
             })*/
 
-          const injectedSource = `(${preloadChunks.toString()})(${JSON.stringify(entries)})`
+          const injectedSource = `(${preloadChunks.toString()})(${JSON.stringify(entries)})`;
 
-          if (htmlPluginData.html.indexOf("</head>") !== -1) {
-            // If a valid closing </head> is found, update it to include preload/prefetch tags
+          if (htmlPluginData.html.indexOf("</body>") !== -1) {
+            // If a valid closing </body> is found, update it to include preload/prefetch tags
             htmlPluginData.html = htmlPluginData.html.replace(
-              "</head>",
-              `<script>${injectedSource}</script></head>`
-            )
+              "</body>",
+              `<script>${injectedSource}</script></body>`
+            );
           } else {
-
-
-
-
             // Otherwise assume at least a <body> is present and update it to include a new <head>
             htmlPluginData.html = htmlPluginData.html.replace(
               "<body>",
-              `<head><script>${injectedSource}</script></head></body>`
-            )
+              `<body><script>${injectedSource}</script>`
+            );
           }
-          cb(null, htmlPluginData)
+          cb(null, htmlPluginData);
         }
-      )
-    })
+      );
+    });
   }
 }
 
-module.exports = PreloadPlugin
+module.exports = PreloadPlugin;
