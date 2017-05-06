@@ -99,17 +99,21 @@ class PreloadPlugin {
 
           const injectedSource = `(${preloadChunks.toString()})(${JSON.stringify(entries)})`
 
-          if (htmlPluginData.html.indexOf("</body>") !== -1) {
-            // If a valid closing </body> is found, update it to include preload/prefetch tags
+          if (htmlPluginData.html.indexOf("</head>") !== -1) {
+            // If a valid closing </head> is found, update it to include preload/prefetch tags
             htmlPluginData.html = htmlPluginData.html.replace(
-              "</body>",
-              `<script>${injectedSource}</script></body>`
+              "</head>",
+              `<script>${injectedSource}</script></head>`
             )
           } else {
+
+
+
+
             // Otherwise assume at least a <body> is present and update it to include a new <head>
             htmlPluginData.html = htmlPluginData.html.replace(
               "<body>",
-              `<body><script>${injectedSource}</script>`
+              `<head><script>${injectedSource}</script></head></body>`
             )
           }
           cb(null, htmlPluginData)
